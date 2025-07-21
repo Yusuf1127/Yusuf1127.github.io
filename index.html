@@ -59,8 +59,8 @@
         }
 
         function resetFood() {
-            food.x = getRandomInt(0, canvas.width / grid) * grid;
-            food.y = getRandomInt(0, canvas.height / grid) * grid;
+            food.x = Math.round(getRandomInt(0, canvas.width / grid - 1)) * grid;
+            food.y = Math.round(getRandomInt(0, canvas.height / grid - 1)) * grid;
         }
 
 
