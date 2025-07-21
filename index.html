@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(270deg, #222, #1a2980, #26d0ce, #222);
+            background-size: 800% 800%;
+            animation: gradientBG 16s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% {background-position:0% 50%}
+            50% {background-position:100% 50%}
+            100% {background-position:0% 50%}
+        }
+        canvas { background: #111; border: 2px solid #fff; }
+        h1 { color: #fff; text-align: center; }
+    </style>
+</head>
+<body>
+    <canvas id="game" width="400" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const grid = 20;
+        let count = 0;
+        let snake = [{x: 160, y: 160}];
+        let dx = grid;
+        let dy = 0;
+        let food = {x: 320, y: 320};
+        let gameOver = false;
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
+        function resetGame() {
+            snake = [{x: 160, y: 160}];
+            dx = grid;
+            dy = 0;
+            gameOver = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+            }
+            score = 0;
+            resetFood();
+            count = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min) + min);
+        }
+
+        function resetFood() {
+            food.x = getRandomInt(0, canvas.width / grid) * grid;
+            food.y = getRandomInt(0, canvas.height / grid) * grid;
+        }
+
+        function gameLoop() {
+            if (gameOver) return;
+            requestAnimationFrame(gameLoop);
+            if (++count < 4) return;
+            count = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head);
+
+            // Check collision with food
+            if (head.x === food.x && head.y === food.y) {
+                resetFood();
+                score++;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('snakeHighScore', highScore);
+                }
+            } else {
+                snake.pop();
+            }
+
+            // Check collision with walls
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                gameOver = true;
+                drawGameOver();
+                return;
+            }
+
+            // Check collision with self
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver = true;
+                    drawGameOver();
+                    return;
+                }
+            }
+        function drawGameOver() {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, canvas.height/2 - 80, canvas.width, 160);
+            ctx.font = '32px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over!', canvas.width/2, canvas.height/2 - 30);
+            ctx.font = '18px Arial';
+            ctx.fillText('Score: ' + score, canvas.width/2, canvas.height/2);
+            ctx.fillText('High Score: ' + highScore, canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText('Press Space to Restart', canvas.width/2, canvas.height/2 + 60);
+        }
+
+            // Draw food
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x, food.y, grid-2, grid-2);
+
+
+            // Draw snake
+            ctx.fillStyle = 'lime';
+            snake.forEach((segment, i) => {
+                ctx.fillRect(segment.x, segment.y, grid-2, grid-2);
+            });
+
+            // Draw eyes on the head
+            const snakeHead = snake[0];
+            let eyeOffsetX = 0, eyeOffsetY = 0, perpX = 0, perpY = 0;
+            if (dx > 0) { // right
+                eyeOffsetX = 7; eyeOffsetY = 4; perpX = 0; perpY = 8;
+            } else if (dx < 0) { // left
+                eyeOffsetX = -7; eyeOffsetY = 4; perpX = 0; perpY = 8;
+            } else if (dy > 0) { // down
+                eyeOffsetX = 4; eyeOffsetY = 7; perpX = 8; perpY = 0;
+            } else if (dy < 0) { // up
+                eyeOffsetX = 4; eyeOffsetY = -7; perpX = 8; perpY = 0;
+            }
+            ctx.fillStyle = '#fff';
+            // Left eye
+            ctx.beginPath();
+            ctx.arc(snakeHead.x + grid/2 + eyeOffsetX - perpX/4, snakeHead.y + grid/2 + eyeOffsetY - perpY/4, 3, 0, Math.PI*2);
+            ctx.fill();
+            // Right eye
+            ctx.beginPath();
+            ctx.arc(snakeHead.x + grid/2 + eyeOffsetX + perpX/4, snakeHead.y + grid/2 + eyeOffsetY + perpY/4, 3, 0, Math.PI*2);
+            ctx.fill();
+
+            // Draw score
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left';
+            ctx.fillText('Score: ' + score, 10, 25);
+            ctx.fillText('High: ' + highScore, 10, 50);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' && dx === 0) {
+                dx = -grid; dy = 0;
+            } else if (e.key === 'ArrowUp' && dy === 0) {
+                dx = 0; dy = -grid;
+            } else if (e.key === 'ArrowRight' && dx === 0) {
+                dx = grid; dy = 0;
+            } else if (e.key === 'ArrowDown' && dy === 0) {
+                dx = 0; dy = grid;
+            } else if (e.code === 'Space') {
+                if (gameOver) {
+                    resetGame();
+                }
+            }
+        });
+
+        resetFood();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
